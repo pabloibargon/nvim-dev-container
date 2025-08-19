@@ -91,7 +91,7 @@ vim.g.mapleader = ' '
 vim.g.maplocalleader = ' '
 
 -- Set to true if you have a Nerd Font installed and selected in the terminal
-vim.g.have_nerd_font = true
+vim.g.have_nerd_font = false
 
 -- [[ Setting options ]]
 -- See `:help vim.o`
@@ -111,7 +111,7 @@ vim.o.mouse = 'a'
 vim.o.showmode = false
 
 -- Point to python with dependencies installed
-vim.g.python3_host_prog = vim.fn.expand '~/.virtualenvs/nvim/bin/python3'
+vim.g.python3_host_prog = vim.fn.expand '~/.config/nvim/.venv/bin/python3'
 
 -- Sync clipboard between OS and Neovim.
 --  Schedule the setting after `UiEnter` because it can increase startup-time.
@@ -176,6 +176,7 @@ vim.keymap.set('n', '<localleader>e', ':MoltenEvaluateOperator<CR>', { silent = 
 vim.keymap.set('n', '<localleader>rl', ':MoltenEvaluateLine<CR>', { silent = true, desc = 'evaluate line' })
 vim.keymap.set('n', '<localleader>rr', ':MoltenReevaluateCell<CR>', { silent = true, desc = 're-evaluate cell' })
 vim.keymap.set('v', '<localleader>r', ':<C-u>MoltenEvaluateVisual<CR>gv', { silent = true, desc = 'evaluate visual selection' })
+vim.keymap.set('n', '<localleader>os', ':noautocmd MoltenEnterOutput<CR>', { silent = true, desc = 'show/enter output' })
 
 -- [[ Basic Keymaps ]]
 --  See `:help vim.keymap.set()`
@@ -374,8 +375,9 @@ require('lazy').setup({
       vim.g.molten_virt_lines_off_by_1 = true
       vim.g.molten_virt_text_max_lines = 10000
       vim.g.molten_cover_empty_lines = false
-      vim.g.molten_copy_output = true
+      vim.g.molten_copy_output = false
       vim.g.molten_output_show_exec_time = true
+      vim.g.molten_auto_open_output = false
     end,
   },
   { -- Fuzzy Finder (files, lsp, etc)
@@ -729,6 +731,21 @@ require('lazy').setup({
           },
         },
       }
+      -- Load server configs from modules
+      local lsp_dir = vim.fn.stdpath 'config' .. '/lua/custom/lsp'
+      local files = vim.fn.globpath(lsp_dir, '*.lua', false, true)
+
+      for _, file in ipairs(files) do
+        local module = file:match('lua/(.+)%.lua$'):gsub('/', '.')
+        local ok, extra = pcall(require, module)
+        if ok and type(extra) == 'table' then
+          for name, config in pairs(extra) do
+            servers[name] = config
+          end
+        else
+          vim.notify('[LSP] Failed to load ' .. module)
+        end
+      end
 
       -- Ensure the servers and tools above are installed
       --
@@ -1131,5 +1148,11 @@ vim.api.nvim_create_autocmd('BufWriteCmd', {
     vim.api.nvim_set_option_value('modified', false, { buf = 0 })
   end,
 })
+-- Mapping to run the Python script
+vim.keymap.set('n', '<leader>oo', function()
+  local python = vim.g.python3_host_prog
+  local script = vim.fn.stdpath('config') .. '/print-kernel-outputs.py'
+  vim.cmd('vsplit | term ' .. python .. ' -u ' .. script)
+end, { desc = 'Show kernel outputs in a vertical split' })
 -- The line beneath this is called `modeline`. See `:help modeline`
 -- vim: ts=2 sts=2 sw=2 et
