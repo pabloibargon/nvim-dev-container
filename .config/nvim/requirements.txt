@@ -47,3 +47,6 @@ tornado==6.5.1
 traitlets==5.14.3
 typing_extensions==4.14.0
 webencodings==0.5.1
+ipython==9.4.0
+ipykernel==6.30.1
+
