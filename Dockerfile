@@ -39,12 +39,25 @@ RUN bash -c '/opt/nvim/bin/nvim --headless "+Lazy! sync" +UpdateRemotePlugins +q
 FROM base AS rust
 
 USER root
-RUN yes | pacman -Sy rust rust-analyzer
+RUN yes | pacman -Sy rustup
 WORKDIR /home/user
 COPY ./rust /tmp/rust
 RUN cp -r /tmp/rust/* .config/nvim
 RUN rm -rf /tmp/rust
+USER user
+RUN rustup default stable
+RUN rustup component add rust-analyzer
+RUN echo 'export PATH="/home/user/.cargo/bin:$PATH"' >> .bash_profile
 
+#### STAGE: VUE ####
+
+FROM base AS vue
+
+USER root
+WORKDIR /home/user
+COPY ./vue /tmp/vue
+RUN cp -r /tmp/vue/* .config/nvim
+RUN rm -rf /tmp/vue
 USER user
 
 ### STAGE: with-java ###
