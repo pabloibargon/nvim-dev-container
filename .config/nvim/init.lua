@@ -1151,8 +1151,40 @@ vim.api.nvim_create_autocmd('BufWriteCmd', {
 -- Mapping to run the Python script
 vim.keymap.set('n', '<leader>oo', function()
   local python = vim.g.python3_host_prog
-  local script = vim.fn.stdpath('config') .. '/print-kernel-outputs.py'
+  local script = vim.fn.stdpath 'config' .. '/print-kernel-outputs.py'
   vim.cmd('vsplit | term ' .. python .. ' -u ' .. script)
 end, { desc = 'Show kernel outputs in a vertical split' })
 -- The line beneath this is called `modeline`. See `:help modeline`
 -- vim: ts=2 sts=2 sw=2 et
+-- TOGGLE HORIZONTAL SPLIT TERM
+-- keep track of the last terminal buffer
+vim.g.last_term_buf = -1
+
+-- when a terminal opens, remember its buffer number
+vim.api.nvim_create_autocmd('TermOpen', {
+  callback = function()
+    vim.g.last_term_buf = vim.api.nvim_get_current_buf()
+  end,
+})
+
+-- define toggle function
+function ToggleTerm()
+  local last = vim.g.last_term_buf
+  if last ~= -1 and vim.api.nvim_buf_is_valid(last) then
+    local win = vim.fn.bufwinnr(last)
+    if win > 0 then
+      -- terminal is visible → hide it
+      vim.cmd 'hide'
+    else
+      -- terminal exists but hidden → reopen in horizontal split
+      vim.cmd('split | buffer ' .. last)
+    end
+  else
+    -- no terminal yet → open new one in horizontal split
+    vim.cmd 'split | terminal'
+    vim.g.last_term_buf = vim.api.nvim_get_current_buf()
+  end
+end
+
+-- map <leader>tt to toggle
+vim.keymap.set('n', '<leader>tt', ToggleTerm, { noremap = true, silent = true })
