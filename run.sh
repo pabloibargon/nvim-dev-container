@@ -2,6 +2,36 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+HOST_OS="linux"
+DOCKER_DISPLAY_ARGS=(
+    -e "DISPLAY=${DISPLAY:-:0}"
+    -v "/tmp/.X11-unix:/tmp/.X11-unix"
+)
+
+if grep -qEi "(Microsoft|WSL)" /proc/version; then
+    HOST_OS="wsl"
+    DOCKER_DISPLAY_ARGS+=(
+        # ACCESS TO WINDOWS FILES
+        -v "/mnt/c:/mnt/c"
+        # Allow container to read the Kernel's exe-handling rules
+        -v "/proc/sys/fs/binfmt_misc:/proc/sys/fs/binfmt_misc"
+        # Shared libraries for the interop bridge?
+        -v "/usr/lib/wsl:/usr/lib/wsl"
+        # Graphics (Keep this for clipboard support even if not using browser)
+        -v "/mnt/wslg:/mnt/wslg"
+        -v "/mnt/wslg/.X11-unix:/tmp/.X11-unix"
+    )
+else
+    USER_ID=$(id -u)
+    DOCKER_DISPLAY_ARGS+=(
+        # DBUS: Allows talking to the host's session (Browser, File Manager)
+        -v "/run/user/$USER_ID/bus:/run/user/$USER_ID/bus"
+        -e "DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$USER_ID/bus"
+	# needed to use dbus
+        --security-opt apparmor=unconfined
+    )
+fi
+
 # Global variable to hold the resulting combination name
 combination=""
 
@@ -103,11 +133,19 @@ docker image list | grep "nvim-dev-container-$TARGET" > /dev/null ||
 		( echo "$revised_dockerfile" | docker build -f - --tag "nvim-dev-container-$TARGET" --target $TARGET $SCRIPT_DIR)
 	)
 
+VOLUME_TARGET_PATH="/app"
 # Run the container
 docker run -it --rm \
-    -w /app \
-    --entrypoint /bin/bash \
-    -v .:/app \
+    -w "$VOLUME_TARGET_PATH" \
+    --network host \
+    --entrypoint /bin/zsh \
+    "${DOCKER_DISPLAY_ARGS[@]}" \
+    -e "HOST_OS=$HOST_OS" \
+    -e "HOST_PWD=$(pwd)" \
+    -e "VOLUME_TARGET_PATH=$VOLUME_TARGET_PATH" \
+    -v ".:$VOLUME_TARGET_PATH" \
+    -v "$HOME/.gitconfig:/home/user/.gitconfig" \
+    -v "$HOME/.ssh:/home/user/.ssh:ro" \
     "${docker_args[@]}" \
     "nvim-dev-container-$TARGET" \
     --login

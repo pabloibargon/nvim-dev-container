@@ -2,37 +2,64 @@ FROM archlinux/archlinux:base-devel AS base
 
 ARG PYTHON_VERSION=3.11
 
-RUN curl -L https://github.com/neovim/neovim/releases/latest/download/nvim-linux-x86_64.tar.gz -O
-RUN tar -xvf nvim-linux-x86_64.tar.gz
-RUN mv nvim-linux-x86_64 /opt/nvim
-RUN echo "append_path '/opt/nvim/bin'" >> /etc/profile.d/extra-global-paths.sh
+# Install Neovim
+# We keep the folder name 'nvim-linux-x86_64' to match the PATH in my .zshrc
+RUN curl -L https://github.com/neovim/neovim/releases/latest/download/nvim-linux-x86_64.tar.gz -O && \
+    tar -xvf nvim-linux-x86_64.tar.gz && \
+    mv nvim-linux-x86_64 /opt/nvim-linux-x86_64
 
-# Create non root user
-RUN mkdir /home/user
-RUN useradd -G wheel -d /home/user user
+# Install Packages
+RUN pacman -Syu --noconfirm git lua51 npm pyenv unzip ripgrep fd luarocks xclip xsel zsh fzf zoxide xdg-utils lsof \
+	tree-sitter-cli
 
-# Copy config files and set owner to user
+# Create non-root user with Zsh
+RUN useradd -m -G wheel -d /home/user -s /bin/zsh user
+
+# Copy config files
 WORKDIR /home/user
-
-# Install packages & setup python
-# lua needs to be 5.1
-RUN yes | pacman -Sy git lua51 npm pyenv unzip ripgrep fd luarocks
-RUN echo 'eval "$(pyenv init --path)" && eval "$(pyenv init -)"' >> .bash_profile
-RUN echo 'if [ -d .venv ] ; then source .venv/bin/activate && python -m ipykernel install --user --name=initial-venv --display-name "Python (Initial venv)" ; fi' >> .bash_profile
-
 COPY ./.config .config
-RUN chown -R user /home/user
 
-# Allow no password sudo
-RUN echo "user ALL=NOPASSWD:ALL" | sudo EDITOR="tee -a" visudo
+RUN chown -R user:user /home/user
 
-# Use image as non-root
+# Allow no-password sudo
+RUN echo "user ALL=NOPASSWD:ALL" | EDITOR="tee -a" visudo
+
 USER user
 
+# Append Pyenv logic to .zshrc so it loads when you enter the container
+RUN echo 'export PYENV_ROOT="$HOME/.pyenv"' >> .zshrc && \
+    echo '[[ -d $PYENV_ROOT/bin ]] && export PATH="$PYENV_ROOT/bin:$PATH"' >> .zshrc && \
+    echo 'eval "$(pyenv init -)"' >> .zshrc && \
+    echo 'if [ -d .venv ]; then source .venv/bin/activate; fi' >> .zshrc
+
 WORKDIR /home/user/.config/nvim
-RUN bash -c 'source /home/user/.bash_profile && pyenv install ${PYTHON_VERSION} && pyenv global ${PYTHON_VERSION} && python -m venv .venv &&\
-	source .venv/bin/activate && pip install -r requirements.txt  && python -m ipykernel install --user --name=nvim-venv --display-name "Python (Nvim venv)" && mkdir -p /home/user/.local/share/jupyter/runtime'
-RUN bash -c '/opt/nvim/bin/nvim --headless "+Lazy! sync" +UpdateRemotePlugins +qa'
+
+# Manually initialize pyenv in this one-liner because .zshrc isn't loaded in non-interactive builds.
+RUN zsh -c 'export PYENV_ROOT="$HOME/.pyenv" && \
+    export PATH="$PYENV_ROOT/bin:$PATH" && \
+    eval "$(pyenv init -)" && \
+    pyenv install ${PYTHON_VERSION} && \
+    pyenv global ${PYTHON_VERSION} && \
+    python -m venv .venv && \
+    source .venv/bin/activate && \
+    pip install -r requirements.txt && \
+    python -m ipykernel install --user --name=nvim-venv --display-name "Python (Nvim venv)" && \
+    mkdir -p /home/user/.local/share/jupyter/runtime'
+
+RUN echo 'source $HOME/.config/.zshrc' >> /home/user/.zshrc
+
+# Run Lazy Sync using the full path
+RUN rm -f lazy-lock.json && \
+    zsh -c 'export PYENV_ROOT="$HOME/.pyenv" && \
+            export PATH="$PYENV_ROOT/bin:$PATH" && \
+            eval "$(pyenv init -)" && \
+            source .venv/bin/activate && \
+            /opt/nvim-linux-x86_64/bin/nvim --headless \
+            "+Lazy! sync" \
+            "+MasonToolsInstallSync" \
+            "+TSUpdateSync" \
+            "+UpdateRemotePlugins" \
+            +qa'
 
 #### STAGE: rust ###
 
