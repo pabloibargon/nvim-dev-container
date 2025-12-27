@@ -177,6 +177,29 @@ vim.keymap.set('n', '<localleader>rl', ':MoltenEvaluateLine<CR>', { silent = tru
 vim.keymap.set('n', '<localleader>rr', ':MoltenReevaluateCell<CR>', { silent = true, desc = 're-evaluate cell' })
 vim.keymap.set('v', '<localleader>r', ':<C-u>MoltenEvaluateVisual<CR>gv', { silent = true, desc = 'evaluate visual selection' })
 vim.keymap.set('n', '<localleader>os', ':noautocmd MoltenEnterOutput<CR>', { silent = true, desc = 'show/enter output' })
+--
+-- [[ DAP keymaps ]] --
+-- Core Debugging
+vim.keymap.set('n', '<leader>db', ':DapToggleBreakpoint<CR>', { silent = true, desc = 'toggle breakpoint' })
+vim.keymap.set('n', '<leader>dc', ':DapContinue<CR>', { silent = true, desc = 'start/continue debugger' })
+vim.keymap.set('n', '<leader>dt', ':DapTerminate<CR>', { silent = true, desc = 'terminate debugger' })
+
+-- Stepping
+vim.keymap.set('n', '<leader>dn', ':DapStepOver<CR>', { silent = true, desc = 'step over (next)' })
+vim.keymap.set('n', '<leader>di', ':DapStepInto<CR>', { silent = true, desc = 'step into' })
+vim.keymap.set('n', '<leader>do', ':DapStepOut<CR>', { silent = true, desc = 'step out' })
+
+-- UI / REPL
+vim.keymap.set('n', '<leader>dvv', ':DapViewToggle<CR>', { silent = true, desc = 'toggle dap view' })
+vim.keymap.set('n', '<leader>dvw', ':DapViewShow watches<CR>', { silent = true, desc = 'show dap watches view' })
+vim.keymap.set('n', '<leader>dvb', ':DapViewShow breakpoints<CR>', { silent = true, desc = 'show dap breakpoints view' })
+vim.keymap.set('n', '<leader>dvs', ':DapViewShow scopes<CR>', { silent = true, desc = 'show dap scopes view' })
+vim.keymap.set('n', '<leader>dve', ':DapViewShow exceptions<CR>', { silent = true, desc = 'show dap exceptions view' })
+vim.keymap.set('n', '<leader>dvt', ':DapViewShow threads<CR>', { silent = true, desc = 'show dap threads view' })
+vim.keymap.set('n', '<leader>dvr', ':DapViewShow repl<CR>', { silent = true, desc = 'show dap repl view' })
+vim.keymap.set('n', '<leader>dr', ':DapViewJump repl<CR>', { silent = true, desc = 'focus on dap repl' })
+vim.keymap.set('n', '<leader>dw', ':DapViewWatch<CR>', { silent = true, desc = '(dap) adds expression under cursor to watch' })
+vim.keymap.set('v', '<leader>dw', ':DapViewWatch<CR>', { silent = true, desc = '(dap) adds expression under cursor to watch' })
 
 -- [[ Basic Keymaps ]]
 --  See `:help vim.keymap.set()`
@@ -374,7 +397,7 @@ require('lazy').setup({
       -- this is an example, not a default. Please see the readme for more configuration options
       vim.g.molten_auto_init_behavior = 'init'
       vim.g.molten_auto_image_popup = false
-      vim.g.molten_output_win_max_height = 100
+      vim.g.molten_output_win_max_height = 15
       vim.g.molten_output_win_hide_on_leave = true
       vim.g.molten_virt_lines_off_by_1 = true
       vim.g.molten_virt_text_max_lines = 10000
@@ -1092,101 +1115,82 @@ require('lazy').setup({
   },
 })
 
-local converter = '~/.config/nvim/stdout-nbconverter.py'
-
 -- Track buffers tied to .ipynb files
 local ipynb_associations = {}
 
--- Read `.ipynb` into a python-style buffer
+-- READ: Convert .ipynb -> .py (percent format)
 vim.api.nvim_create_autocmd('BufReadCmd', {
   pattern = '*.ipynb',
   callback = function(args)
-    local ipynb = args.file
+    local ipynb_path = args.file
 
-    -- Convert in-memory
-    local handle = io.popen(vim.g.python3_host_prog .. ' ' .. converter .. ' to_py ' .. ipynb)
-    local txt = handle:read '*a'
+    -- Check if jupytext is installed
+    if vim.fn.executable 'jupytext' == 0 then
+      vim.notify('jupytext not found. Install with: uv tool install jupytext', vim.log.levels.ERROR)
+      return
+    end
+
+    -- Command: Convert ipynb to py:percent, output to stdout (-)
+    local cmd = string.format('jupytext --to py:percent --output - %s', vim.fn.shellescape(ipynb_path))
+
+    local handle = io.popen(cmd)
+    local result = handle:read '*a'
     handle:close()
 
-    -- Create buffer and load content
-    vim.api.nvim_buf_set_lines(args.buf, 0, -1, false, vim.split(txt, '\n'))
-    vim.bo.filetype = 'python'
-    vim.bo.modifiable = true
-    vim.bo.bufhidden = 'wipe'
-    vim.bo.buftype = 'acwrite'
+    -- Load content into buffer
+    local lines = vim.split(result, '\n')
+    vim.api.nvim_buf_set_lines(args.buf, 0, -1, false, lines)
 
-    ipynb_associations[args.buf] = ipynb
+    -- Configure buffer
+    vim.bo[args.buf].filetype = 'python'
+    vim.bo[args.buf].modifiable = true
+    vim.bo[args.buf].bufhidden = 'wipe'
+    vim.bo[args.buf].buftype = 'acwrite' -- We handle writing manually
+
+    ipynb_associations[args.buf] = ipynb_path
   end,
 })
 
--- Write buffer back into `.ipynb`
+-- WRITE: Convert .py -> .ipynb
 vim.api.nvim_create_autocmd('BufWriteCmd', {
   pattern = '*.ipynb',
   callback = function(args)
     local buf = args.buf
-    local ipynb = ipynb_associations[buf]
-    if not ipynb then
+    local original_ipynb = ipynb_associations[buf]
+
+    if not original_ipynb then
       return
     end
 
-    -- Write buffer contents to a tempfile
-    local tmp = vim.fn.tempname() .. '.py'
+    -- 1. Save buffer to a temp python file
+    local temp_py = vim.fn.tempname() .. '.py'
     local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
-    local fh = io.open(tmp, 'w')
-    fh:write(table.concat(lines, '\n'))
-    fh:close()
-
-    -- Convert back to notebook
-    local h2 = io.popen(vim.g.python3_host_prog .. ' ' .. converter .. ' to_ipynb ' .. tmp)
-    local notebook = h2:read '*a'
-    h2:close()
-
-    -- Overwrite original file
-    local fo = io.open(ipynb, 'w')
-    fo:write(notebook)
-    fo:close()
-    os.remove(tmp)
-    -- Signal Neovim that the write is complete
-    vim.api.nvim_set_option_value('modified', false, { buf = 0 })
-  end,
-})
--- Mapping to run the Python script
-vim.keymap.set('n', '<leader>oo', function()
-  local python = vim.g.python3_host_prog
-  local script = vim.fn.stdpath 'config' .. '/print-kernel-outputs.py'
-  vim.cmd('vsplit | term ' .. python .. ' -u ' .. script)
-end, { desc = 'Show kernel outputs in a vertical split' })
--- The line beneath this is called `modeline`. See `:help modeline`
--- vim: ts=2 sts=2 sw=2 et
--- TOGGLE HORIZONTAL SPLIT TERM
--- keep track of the last terminal buffer
-vim.g.last_term_buf = -1
-
--- when a terminal opens, remember its buffer number
-vim.api.nvim_create_autocmd('TermOpen', {
-  callback = function()
-    vim.g.last_term_buf = vim.api.nvim_get_current_buf()
-  end,
-})
-
--- define toggle function
-function ToggleTerm()
-  local last = vim.g.last_term_buf
-  if last ~= -1 and vim.api.nvim_buf_is_valid(last) then
-    local win = vim.fn.bufwinnr(last)
-    if win > 0 then
-      -- terminal is visible → hide it
-      vim.cmd 'hide'
-    else
-      -- terminal exists but hidden → reopen in horizontal split
-      vim.cmd('split | buffer ' .. last)
+    local f_temp = io.open(temp_py, 'w')
+    if f_temp then
+      f_temp:write(table.concat(lines, '\n'))
+      f_temp:close()
     end
-  else
-    -- no terminal yet → open new one in horizontal split
-    vim.cmd 'split | terminal'
-    vim.g.last_term_buf = vim.api.nvim_get_current_buf()
-  end
-end
 
--- map <leader>tt to toggle
-vim.keymap.set('n', '<leader>tt', ToggleTerm, { noremap = true, silent = true })
+    -- Convert temp file back to notebook structure
+    -- We use --from py:percent to ensure it parses the # %% markers correctly
+    local cmd = string.format('jupytext --to ipynb --from py:percent --output - %s', vim.fn.shellescape(temp_py))
+
+    local handle = io.popen(cmd)
+    local notebook_json = handle:read '*a'
+    handle:close()
+
+    -- 3. Overwrite the original .ipynb
+    local f_out = io.open(original_ipynb, 'w')
+    if f_out then
+      f_out:write(notebook_json)
+      f_out:close()
+      vim.notify('Saved ' .. vim.fn.fnamemodify(original_ipynb, ':t'), vim.log.levels.INFO)
+    else
+      vim.notify('Failed to write to ' .. original_ipynb, vim.log.levels.ERROR)
+    end
+
+    -- 4. Cleanup
+    os.remove(temp_py)
+    vim.api.nvim_set_option_value('modified', false, { buf = buf })
+  end,
+})

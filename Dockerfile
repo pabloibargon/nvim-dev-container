@@ -3,57 +3,49 @@ FROM archlinux/archlinux:base-devel AS base
 ARG PYTHON_VERSION=3.11
 
 # Install Neovim
-# We keep the folder name 'nvim-linux-x86_64' to match the PATH in my .zshrc
 RUN curl -L https://github.com/neovim/neovim/releases/latest/download/nvim-linux-x86_64.tar.gz -O && \
     tar -xvf nvim-linux-x86_64.tar.gz && \
     mv nvim-linux-x86_64 /opt/nvim-linux-x86_64
 
-# Install Packages
-RUN pacman -Syu --noconfirm git lua51 npm pyenv unzip ripgrep fd luarocks xclip xsel zsh fzf zoxide xdg-utils lsof \
-	tree-sitter-cli
+# Install System Packages
+RUN pacman -Syu --noconfirm git lua51 npm unzip ripgrep fd luarocks xclip xsel zsh fzf zoxide xdg-utils lsof tree-sitter-cli uv
 
-# Create non-root user with Zsh
+# Create User
 RUN useradd -m -G wheel -d /home/user -s /bin/zsh user
 
-# Copy config files
+# Copy Configs
 WORKDIR /home/user
 COPY ./.config .config
-
 RUN chown -R user:user /home/user
 
-# Allow no-password sudo
+# Sudo Setup
 RUN echo "user ALL=NOPASSWD:ALL" | EDITOR="tee -a" visudo
 
 USER user
 
-# Append Pyenv logic to .zshrc so it loads when you enter the container
-RUN echo 'export PYENV_ROOT="$HOME/.pyenv"' >> .zshrc && \
-    echo '[[ -d $PYENV_ROOT/bin ]] && export PATH="$PYENV_ROOT/bin:$PATH"' >> .zshrc && \
-    echo 'eval "$(pyenv init -)"' >> .zshrc && \
+# Configure .zshrc
+RUN echo 'export PATH="$HOME/.config/nvim/.venv/bin:$PATH"' >> .zshrc && \
+    echo 'source $HOME/.config/.zshrc' >> .zshrc && \
+    echo 'eval "$(uv generate-shell-completion zsh)"' >> .zshrc && \
     echo 'if [ -d .venv ]; then source .venv/bin/activate; fi' >> .zshrc
 
 WORKDIR /home/user/.config/nvim
 
-# Manually initialize pyenv in this one-liner because .zshrc isn't loaded in non-interactive builds.
-RUN zsh -c 'export PYENV_ROOT="$HOME/.pyenv" && \
-    export PATH="$PYENV_ROOT/bin:$PATH" && \
-    eval "$(pyenv init -)" && \
-    pyenv install ${PYTHON_VERSION} && \
-    pyenv global ${PYTHON_VERSION} && \
-    python -m venv .venv && \
-    source .venv/bin/activate && \
-    pip install -r requirements.txt && \
-    python -m ipykernel install --user --name=nvim-venv --display-name "Python (Nvim venv)" && \
-    mkdir -p /home/user/.local/share/jupyter/runtime'
+# Setup Python Environment with UV
+RUN uv python install ${PYTHON_VERSION} && \
+    uv venv .venv --python ${PYTHON_VERSION} && \
+    # Activate venv for the subsequent commands
+    zsh -c 'source .venv/bin/activate && \
+            uv pip install -r requirements.txt && \
+            # Install IPyKernel for Jupyter support
+            uv pip install ipykernel && \
+            python -m ipykernel install --user --name=nvim-venv --display-name "Python (Nvim venv)" && \
+            mkdir -p /home/user/.local/share/jupyter/runtime'
 
-RUN echo 'source $HOME/.config/.zshrc' >> /home/user/.zshrc
-
-# Run Lazy Sync using the full path
+# 8. Run Neovim Sync
+# We source the venv created by uv so Neovim finds the installed packages/LSPs
 RUN rm -f lazy-lock.json && \
-    zsh -c 'export PYENV_ROOT="$HOME/.pyenv" && \
-            export PATH="$PYENV_ROOT/bin:$PATH" && \
-            eval "$(pyenv init -)" && \
-            source .venv/bin/activate && \
+    zsh -c 'source .venv/bin/activate && \
             /opt/nvim-linux-x86_64/bin/nvim --headless \
             "+Lazy! sync" \
             "+MasonToolsInstallSync" \
@@ -74,7 +66,8 @@ RUN rm -rf /tmp/rust
 USER user
 RUN rustup default stable
 RUN rustup component add rust-analyzer
-RUN echo 'export PATH="/home/user/.cargo/bin:$PATH"' >> .bash_profile
+
+RUN echo 'export PATH="/home/user/.cargo/bin:$PATH"' >> .zshrc
 
 #### STAGE: VUE ####
 
