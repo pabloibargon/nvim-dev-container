@@ -379,22 +379,12 @@ require('lazy').setup({
   --
   -- Use the `dependencies` key to specify the dependencies of a particular plugin
   {
-    'vhyrro/luarocks.nvim',
-    priority = 1001, -- this plugin needs to run before anything else
-    opts = {
-      rocks = { 'magick' },
-    },
-  },
-  -- I also installed chrome for plotly plots to be rendered to pngs
-  {
     'benlubas/molten-nvim',
     version = '^1.0.0', -- use version <2.0.0 to avoid breaking changes
     build = ':UpdateRemotePlugins',
-    dependencies = {
-      '3rd/image.nvim',
-    },
     init = function()
-      -- this is an example, not a default. Please see the readme for more configuration options
+      vim.g.molten_image_provider = 'none'
+      vim.g.molten_open_cmd = 'open'
       vim.g.molten_auto_init_behavior = 'init'
       vim.g.molten_auto_image_popup = false
       vim.g.molten_output_win_max_height = 15

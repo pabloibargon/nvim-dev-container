@@ -8,7 +8,7 @@ RUN curl -L https://github.com/neovim/neovim/releases/latest/download/nvim-linux
     mv nvim-linux-x86_64 /opt/nvim-linux-x86_64
 
 # Install System Packages
-RUN pacman -Syu --noconfirm git lua51 npm unzip ripgrep fd luarocks xclip xsel zsh fzf zoxide xdg-utils lsof tree-sitter-cli uv
+RUN pacman -Syu --noconfirm git lua51 npm unzip ripgrep fd luarocks xclip xsel zsh fzf zoxide xdg-utils lsof tree-sitter-cli uv tmux
 
 # Create User
 RUN useradd -m -G wheel -d /home/user -s /bin/zsh user
@@ -17,6 +17,7 @@ RUN useradd -m -G wheel -d /home/user -s /bin/zsh user
 WORKDIR /home/user
 COPY ./.config .config
 RUN chown -R user:user /home/user
+RUN chmod +x .config/commands/*
 
 # Sudo Setup
 RUN echo "user ALL=NOPASSWD:ALL" | EDITOR="tee -a" visudo

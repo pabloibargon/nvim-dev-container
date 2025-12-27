@@ -3,6 +3,7 @@
 # =============================================================================
 export PATH="$PATH:/opt/nvim-linux-x86_64/bin"
 export PATH="$HOME/.cargo/bin:$PATH"
+export PATH="$HOME/.config/commands:$PATH"
 export PATH="$HOME/.local/bin:$PATH"
 
 # =============================================================================
@@ -40,43 +41,6 @@ PROMPT="%{$fg[green]%}%n@%m %{$fg[blue]%}%~ %{$reset_color%}%# "
 # ALIASES & FUNCTIONS
 # =============================================================================
 alias dev="bash ~/projects/nvim-dev-container/run.sh"
-PORT=8989
-function open() {
-    local target="$1"
-    # If target is a local file
-    if [ -f "$target" ]; then
-	    # Get absolute path inside container
-	    local abs_path=$(realpath "$target")
-	    local host_file_path=""
-	    if [[ -n "$HOST_PWD" ]] && \
-	       [[ -n "$VOLUME_TARGET_PATH" ]] && \
-	       [[ "$abs_path" == "$VOLUME_TARGET_PATH"* ]]; then
-		local rel_path="${abs_path#$VOLUME_TARGET_PATH}"
-		if [[ "$HOST_OS" != "wsl" ]]; then
-		# Check if port is free (lsof returns 1 if nothing is found)
-		if ! lsof -i :$PORT > /dev/null; then
-		    # Start server, hide output, run in background
-		    (cd $VOLUME_TARGET_PATH && python -m http.server $PORT > /dev/null 2>&1) &!
-		fi
-			gdbus call --session --dest org.freedesktop.portal.Desktop \
-			    --object-path /org/freedesktop/portal/desktop \
-			    --method org.freedesktop.portal.OpenURI.OpenURI \
-			    "" "http://localhost:$PORT$rel_path" "{}" > /dev/null
-			return
-	         else
-                 /mnt/c/Windows/explorer.exe "$target"
-		fi
-	    # TODO: WSL path translation
-	fi
-    elif [[ "$HOST_OS" == "wsl" ]]; then
-        # WSL: Directly call the Windows binary. 
-        # The Kernel's binfmt_misc handles the magic.
-        /mnt/c/Windows/explorer.exe "$target"
-    else
-        # LINUX: Use standard DBus call to host
-        xdg-open "$target" > /dev/null 2>&1
-    fi
-}
 alias copy='xsel -ib'
 
 # render an Rmd to HTML

@@ -1,0 +1,85 @@
+#! /bin/zsh
+
+HTTP_FILE_SERVER_PORT=8989
+
+function open() {
+    local target="$1"
+
+    if [[ "$target" =~ ^https?:// ]]; then
+        if [[ "$HOST_OS" == "wsl" ]]; then
+            /mnt/c/Windows/explorer.exe "$target"
+        elif command -v gdbus >/dev/null 2>&1; then
+            gdbus call --session --dest org.freedesktop.portal.Desktop \
+                --object-path /org/freedesktop/portal/desktop \
+                --method org.freedesktop.portal.OpenURI.OpenURI \
+                "" "$target" "{}" > /dev/null 2>&1
+        else
+            xdg-open "$target" > /dev/null 2>&1
+        fi
+        return
+    fi
+
+    if [ -f "$target" ]; then
+        local abs_path=$(realpath "$target")
+        local dir_name=$(dirname "$abs_path")
+        local file_name=$(basename "$abs_path")
+
+        if [[ "$HOST_OS" == "wsl" ]]; then
+            if [[ "$abs_path" == "/mnt/c"* ]]; then
+                # Simple translation for C drive mounts
+                local win_path="C:${abs_path#/mnt/c}"
+                win_path="${win_path//\//\\}"
+                /mnt/c/Windows/explorer.exe "$win_path"
+            else
+                # Fallback: Copy to Windows Temp if not on C mount
+                local win_temp="/mnt/c/Windows/Temp/view"
+                mkdir -p "$win_temp"
+                cp "$abs_path" "$win_temp/$file_name"
+                /mnt/c/Windows/explorer.exe "C:\\Windows\\Temp\\view\\$file_name"
+            fi
+            return
+        fi
+
+        local pid=$(lsof -t -i :$HTTP_FILE_SERVER_PORT -sTCP:LISTEN)
+        local server_needed=true
+
+        if [[ -n "$pid" ]]; then
+            # Check WHICH directory that PID is serving
+            # In Linux, /proc/PID/cwd is a symlink to the working directory
+            local served_dir=$(readlink -f /proc/$pid/cwd)
+
+            if [[ "$served_dir" == "$dir_name" ]]; then
+                # It's already serving the correct directory!
+                server_needed=false
+            else
+                # It's serving the WRONG directory. Kill it.
+                kill $pid
+                # Wait loop until port is actually free
+                while lsof -i :$HTTP_FILE_SERVER_PORT >/dev/null 2>&1; do 
+                    sleep 0.02
+                done
+            fi
+        fi
+
+        # Launch server if needed
+        if [[ "$server_needed" == "true" ]]; then
+            echo " >> Starting HTTP server on port $HTTP_FILE_SERVER_PORT..."
+            # Use Zsh '&!' to disown immediately
+            (cd "$dir_name" && python3 -m http.server "$HTTP_FILE_SERVER_PORT" > /dev/null 2>&1) &! 
+        fi
+
+        # Open the URL via Host Portal
+        local url="http://localhost:$HTTP_FILE_SERVER_PORT/$file_name"
+        
+        echo " >> Opening: $url"
+        gdbus call --session --dest org.freedesktop.portal.Desktop \
+            --object-path /org/freedesktop/portal/desktop \
+            --method org.freedesktop.portal.OpenURI.OpenURI \
+            "" "$url" "{}" > /dev/null 2>&1
+            
+        return
+    fi
+}
+
+open "$@"
+

@@ -140,6 +140,7 @@ docker run -it --rm \
     --network host \
     --entrypoint /bin/zsh \
     "${DOCKER_DISPLAY_ARGS[@]}" \
+    -e TERM=xterm-256color \
     -e "HOST_OS=$HOST_OS" \
     -e "HOST_PWD=$(pwd)" \
     -e "VOLUME_TARGET_PATH=$VOLUME_TARGET_PATH" \
