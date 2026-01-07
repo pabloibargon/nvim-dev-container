@@ -58,8 +58,8 @@ compose_dockerfile() {
 
     while IFS= read -r line; do
         # Match FROM base AS <stage>
-        if [[ "$line" =~ ^FROM[[:space:]]+base[[:space:]]+AS[[:space:]]+([a-zA-Z0-9_-]+) ]]; then
-            local stage="${BASH_REMATCH[1]}"
+        if [[ "$line" =~ ^FROM[[:space:]]+([a-zA-Z0-9_-]+)[[:space:]]+AS[[:space:]]+([a-zA-Z0-9_-]+) ]]; then
+            local stage="${BASH_REMATCH[2]}"
 
             # If this stage is one of the requested features
             if [[ ${is_selected[$stage]+_} ]]; then
