@@ -125,6 +125,26 @@ RUN echo "JAVA_HOME=$JAVA_HOME" >> /etc/profile && echo "PATH=$JAVA_HOME/bin:\$P
 RUN chown -R user $INSTALL_DIR
 USER user
 
+# STAGE: scala
+
+FROM with-java AS scala
+
+USER root
+RUN pacman -Sy --noconfirm --needed sbt
+USER user
+
+# STAGE: typst
+
+FROM base AS typst
+USER root
+RUN pacman -Sy --noconfirm --needed typst
+WORKDIR /home/user
+COPY ./typst /tmp/typst
+RUN cp -r /tmp/typst/* .config/nvim
+RUN rm -rf /tmp/typst
+USER user
+
+
 ### STAGE: default ###
 
 FROM base AS default
