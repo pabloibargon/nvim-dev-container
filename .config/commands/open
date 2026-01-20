@@ -1,13 +1,14 @@
 #! /bin/zsh
 
 HTTP_FILE_SERVER_PORT=8989
+WSL_PREFIX='\\\\wsl.localhost\\Ubuntu-24.04'
 
 function open() {
     local target="$1"
 
     if [[ "$target" =~ ^https?:// ]]; then
         if [[ "$HOST_OS" == "wsl" ]]; then
-            /mnt/c/Windows/explorer.exe "$target"
+            echo "$target" > /tmp/container_socket
         elif command -v gdbus >/dev/null 2>&1; then
             gdbus call --session --dest org.freedesktop.portal.Desktop \
                 --object-path /org/freedesktop/portal/desktop \
@@ -26,18 +27,21 @@ function open() {
 
         if [[ "$HOST_OS" == "wsl" ]]; then
             if [[ "$abs_path" == "/mnt/c"* ]]; then
-                # Simple translation for C drive mounts
                 local win_path="C:${abs_path#/mnt/c}"
                 win_path="${win_path//\//\\}"
-                /mnt/c/Windows/explorer.exe "$win_path"
+                echo "Opening $win_path"
+                echo "$win_path" > /tmp/container_socket
+                return
             else
-                # Fallback: Copy to Windows Temp if not on C mount
-                local win_temp="/mnt/c/Windows/Temp/view"
-                mkdir -p "$win_temp"
-                cp "$abs_path" "$win_temp/$file_name"
-                /mnt/c/Windows/explorer.exe "C:\\Windows\\Temp\\view\\$file_name"
+		if [[ "$abs_path" == "/app"* ]]; then
+		local host_path="$HOST_PWD${abs_path#/app}"
+		local win_host_path="${host_path//\//\\\\}"
+		win_host_path="$WSL_PREFIX$win_host_path"
+		echo "Opening $win_host_path"
+                echo "$win_host_path" > /tmp/container_socket
+		return
+		fi
             fi
-            return
         fi
 
         local pid=$(lsof -t -i :$HTTP_FILE_SERVER_PORT -sTCP:LISTEN)

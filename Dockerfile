@@ -28,7 +28,7 @@ USER user
 RUN echo 'export PATH="$HOME/.config/nvim/.venv/bin:$PATH"' >> .zshrc && \
     echo 'source $HOME/.config/.zshrc' >> .zshrc && \
     echo 'eval "$(uv generate-shell-completion zsh)"' >> .zshrc && \
-    echo 'if [ -d .venv ]; then source .venv/bin/activate; fi' >> .zshrc
+    echo 'if [ -d .venv ]; then source .venv/bin/activate; python -m ipykernel install --user --name='.venv' --display-name '.venv' &> /dev/null; fi' >> .zshrc
 
 WORKDIR /home/user/.config/nvim
 

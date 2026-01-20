@@ -5,7 +5,6 @@ set -euo pipefail
 HOST_OS="linux"
 DOCKER_DISPLAY_ARGS=(
     -e "DISPLAY=${DISPLAY:-:0}"
-    -v "/tmp/.X11-unix:/tmp/.X11-unix"
 )
 
 if grep -qEi "(Microsoft|WSL)" /proc/version; then
@@ -14,7 +13,8 @@ if grep -qEi "(Microsoft|WSL)" /proc/version; then
         # ACCESS TO WINDOWS FILES
         -v "/mnt/c:/mnt/c"
         # Allow container to read the Kernel's exe-handling rules
-        -v "/proc/sys/fs/binfmt_misc:/proc/sys/fs/binfmt_misc"
+	# TODO: Fix this
+        # -v "/proc/sys/fs/binfmt_misc:/proc/sys/fs/binfmt_misc"
         # Shared libraries for the interop bridge?
         -v "/usr/lib/wsl:/usr/lib/wsl"
         # Graphics (Keep this for clipboard support even if not using browser)
@@ -26,6 +26,7 @@ else
     DOCKER_DISPLAY_ARGS+=(
         # DBUS: Allows talking to the host's session (Browser, File Manager)
         -v "/run/user/$USER_ID/bus:/run/user/$USER_ID/bus"
+        -v "/tmp/.X11-unix:/tmp/.X11-unix"
         -e "DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$USER_ID/bus"
 	# needed to use dbus
         --security-opt apparmor=unconfined
@@ -132,6 +133,11 @@ docker image list | grep "nvim-dev-container-$TARGET" > /dev/null ||
 	(echo "Rebuilding $TARGET" &&
 		( echo "$revised_dockerfile" | docker build -f - --tag "nvim-dev-container-$TARGET" --target $TARGET $SCRIPT_DIR)
 	)
+if [[ "$HOST_OS" == "wsl" ]]; then
+	SCRIPT_DIR=$(dirname "$0")
+	bash "$SCRIPT_DIR/socket.sh" &
+	SOCKET_PID=$!
+fi
 
 VOLUME_TARGET_PATH="/app"
 # Run the container
@@ -144,6 +150,7 @@ docker run -it --rm \
     -e "HOST_OS=$HOST_OS" \
     -e "HOST_PWD=$(pwd)" \
     -e "VOLUME_TARGET_PATH=$VOLUME_TARGET_PATH" \
+    -v "/tmp:/tmp" \
     -v ".:$VOLUME_TARGET_PATH" \
     -v "$HOME/.gitconfig:/home/user/.gitconfig" \
     -v "$HOME/.ssh:/home/user/.ssh:ro" \
@@ -151,3 +158,6 @@ docker run -it --rm \
     "nvim-dev-container-$TARGET" \
     --login
 # a login shell is needed so that profile scripts are run
+if [[ "$HOST_OS" == "wsl" ]]; then
+  kill $SOCKET_PID
+fi
