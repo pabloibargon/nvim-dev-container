@@ -29,7 +29,6 @@ function open() {
             if [[ "$abs_path" == "/mnt/c"* ]]; then
                 local win_path="C:${abs_path#/mnt/c}"
                 win_path="${win_path//\//\\}"
-                echo "Opening $win_path"
                 echo "$win_path" > /tmp/container_socket
                 return
             else
@@ -37,7 +36,6 @@ function open() {
 		local host_path="$HOST_PWD${abs_path#/app}"
 		local win_host_path="${host_path//\//\\\\}"
 		win_host_path="$WSL_PREFIX$win_host_path"
-		echo "Opening $win_host_path"
                 echo "$win_host_path" > /tmp/container_socket
 		return
 		fi

@@ -201,6 +201,12 @@ vim.keymap.set('n', '<leader>dr', ':DapViewJump repl<CR>', { silent = true, desc
 vim.keymap.set('n', '<leader>dw', ':DapViewWatch<CR>', { silent = true, desc = '(dap) adds expression under cursor to watch' })
 vim.keymap.set('v', '<leader>dw', ':DapViewWatch<CR>', { silent = true, desc = '(dap) adds expression under cursor to watch' })
 
+-- NEOTEST
+vim.keymap.set("n", "<leader>ts", function()
+  require("neotest").summary.toggle()
+end, { desc = "Neotest: Toggle test summary" })
+
+
 -- [[ Basic Keymaps ]]
 --  See `:help vim.keymap.set()`
 
@@ -830,12 +836,129 @@ require('lazy').setup({
         command = vim.g.python3_host_prog,
         args = { '-m', 'debugpy.adapter' },
       }
+      dap.defaults.fallback.switchbuf = "usevisible,usetab,newtab"
     end,
   },
   {
     'mfussenegger/nvim-dap',
     event = 'VeryLazy',
     lazy = true,
+  },
+  {
+    'nvim-neotest/neotest',
+    dependencies = {
+      'nvim-neotest/neotest-python',
+      'nvim-neotest/nvim-nio',
+      'nvim-lua/plenary.nvim',
+      'antoinemadec/FixCursorHold.nvim',
+      'nvim-treesitter/nvim-treesitter',
+    },
+    config = function()
+      require('neotest').setup {
+        -- 1) Icons that work without Nerd Font / codicons
+        icons = {
+          expanded = '-',
+          collapsed = '+',
+          child_prefix = '|',
+          child_indent = '> ',
+          final_child_prefix = '|',
+          non_collapsible = ' ',
+ 
+          passed = 'OK', -- or "✓" if you like
+          running = '..',
+          failed = 'XX',
+          skipped = 'SK',
+          unknown = '??',
+          notify = 'N',
+          test = 'T',
+          watching = 'W',
+        },
+ 
+        -- 2) Solarized-friendly highlight links (no hardcoded colors)
+        -- These groups exist in basically all colorschemes, including Solarized variants.
+        highlights = {
+          adapter_name = 'Title',
+          border = 'FloatBorder',
+ 
+          -- status colors
+          passed = 'DiagnosticOk', -- green-ish in most Solarized setups
+          running = 'DiagnosticInfo', -- blue/cyan-ish
+          failed = 'DiagnosticError', -- red
+          skipped = 'DiagnosticWarn', -- yellow/orange
+ 
+          -- tree / text
+          dir = 'Directory',
+          file = 'Normal',
+          test = 'Normal',
+          namespace = 'Comment',
+ 
+          -- summary counts / positions
+          focused = 'Visual',
+        },
+ 
+        summary = {
+          enabled = true,
+          animated = false, -- less “blinky” on minimalist themes
+          follow = false,
+          expand_errors = true,
+ 
+          -- 3) Sensible key mappings inside the summary buffer
+          mappings = {
+            expand = { '<CR>', 'l' },
+            collapse = { 'h' }, -- (some versions use expand only; if collapse isn't supported, harmless)
+            run = 'r',
+            debug = 'd',
+            output = 'o',
+            short = 'O',
+            stop = 'S',
+            attach = 'a',
+            jumpto = 'i',
+ 
+            mark = 'm',
+            run_marked = 'R',
+            debug_marked = 'D',
+            clear_marked = 'M',
+ 
+            next_failed = ']f',
+            prev_failed = '[f',
+ 
+            watch = 'w',
+          },
+        },
+ 
+        output = {
+          enabled = true,
+          open_on_run = 'fail', -- open output automatically on failures
+        },
+ 
+        output_panel = {
+          enabled = true,
+          open = 'botright split | resize 12',
+        },
+        adapters = {
+          require 'neotest-python' {
+            runner = 'pytest',
+            pytest_discover_instances = true,
+          },
+        },
+        discovery = {
+          enabled = true,
+          filter_dir = function(name)
+            return not vim.tbl_contains({
+              'node_modules',
+              '.git',
+              '__pycache__',
+              '.pytest_cache',
+              'venv',
+              '.venv',
+              'build',
+              'dist',
+              '.tox',
+            }, name)
+          end,
+        },
+      }
+    end,
   },
   { -- Autoformat
     'stevearc/conform.nvim',
@@ -1035,9 +1158,10 @@ require('lazy').setup({
   },
   { -- Highlight, edit, and navigate code
     'nvim-treesitter/nvim-treesitter',
+    lazy = false,
     build = ':TSUpdate',
     opts = {
-      ensure_installed = { 'bash', 'c', 'diff', 'html', 'lua', 'luadoc', 'markdown', 'markdown_inline', 'query', 'vim', 'vimdoc' },
+      ensure_installed = {'python', 'bash', 'c', 'diff', 'html', 'lua', 'luadoc', 'markdown', 'markdown_inline', 'query', 'vim', 'vimdoc' },
       -- Autoinstall languages that are not installed
       auto_install = true,
       highlight = {
@@ -1184,3 +1308,15 @@ vim.api.nvim_create_autocmd('BufWriteCmd', {
     vim.api.nvim_set_option_value('modified', false, { buf = buf })
   end,
 })
+
+require('boxdraw').setup {
+  keymaps = {
+    enabled = true,
+    box_mode = '<leader>mb',
+    line_mode = '<leader>ml',
+  },
+  -- optional overrides:
+  -- box_mode = { commit = "<CR>", cancel = "<Esc>" },
+  -- line_mode = { exit = "<Esc>", arrow_exit = "A" },
+}
+

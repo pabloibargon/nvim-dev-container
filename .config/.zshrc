@@ -6,6 +6,8 @@ export PATH="$HOME/.cargo/bin:$PATH"
 export PATH="$HOME/.config/commands:$PATH"
 export PATH="$HOME/.local/bin:$PATH"
 
+export EDITOR=nvim
+
 # =============================================================================
 # HISTORY CONFIGURATION (Fixes "no history")
 # =============================================================================

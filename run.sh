@@ -156,7 +156,8 @@ docker run -it --rm \
     -v "$HOME/.ssh:/home/user/.ssh:ro" \
     "${docker_args[@]}" \
     "nvim-dev-container-$TARGET" \
-    --login
+    --login \
+    -c 'tmux -L "$(date +%s%N)"'
 # a login shell is needed so that profile scripts are run
 if [[ "$HOST_OS" == "wsl" ]]; then
   kill $SOCKET_PID

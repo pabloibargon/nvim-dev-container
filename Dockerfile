@@ -8,7 +8,7 @@ RUN curl -L https://github.com/neovim/neovim/releases/latest/download/nvim-linux
     mv nvim-linux-x86_64 /opt/nvim-linux-x86_64
 
 # Install System Packages
-RUN pacman -Syu --noconfirm git lua51 npm unzip ripgrep fd luarocks xclip xsel zsh fzf zoxide xdg-utils lsof tree-sitter-cli uv tmux
+RUN pacman -Syu --noconfirm git lua51 npm unzip ripgrep fd luarocks xclip xsel zsh fzf zoxide xdg-utils lsof tree-sitter-cli uv tmux openssh less
 
 # Create User
 RUN useradd -m -G wheel -d /home/user -s /bin/zsh user
@@ -50,6 +50,7 @@ RUN rm -f lazy-lock.json && \
             /opt/nvim-linux-x86_64/bin/nvim --headless \
             "+Lazy! sync" \
             "+MasonToolsInstallSync" \
+            "+lua require(\"nvim-treesitter.install\").install({\"python\"}):wait(300000)" \
             "+TSUpdateSync" \
             "+UpdateRemotePlugins" \
             +qa'

@@ -20,7 +20,9 @@ trap cleanup SIGINT SIGTERM
 # Listen for input from the socket (filenames or URLs)
 while true; do
     if read -r target < $SOCKET_PATH; then
-        /mnt/c/Windows/explorer.exe "$target"
+	 /mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe \
+        -NoProfile -Command "Start-Process '$target'"
+        # /mnt/c/Windows/explorer.exe "$target"
     fi
 done
 
