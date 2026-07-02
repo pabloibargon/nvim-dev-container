@@ -170,43 +170,6 @@ vim.o.scrolloff = 10
 -- See `:help 'confirm'`
 vim.o.confirm = true
 
--- [[ Molten keymaps ]]
-vim.keymap.set('n', '<localleader>mi', ':MoltenInit<CR>', { silent = true, desc = 'Initialize the plugin' })
-vim.keymap.set('n', '<localleader>e', ':MoltenEvaluateOperator<CR>', { silent = true, desc = 'run operator selection' })
-vim.keymap.set('n', '<localleader>rl', ':MoltenEvaluateLine<CR>', { silent = true, desc = 'evaluate line' })
-vim.keymap.set('n', '<localleader>rr', ':MoltenReevaluateCell<CR>', { silent = true, desc = 're-evaluate cell' })
-vim.keymap.set('v', '<localleader>r', ':<C-u>MoltenEvaluateVisual<CR>gv', { silent = true, desc = 'evaluate visual selection' })
-vim.keymap.set('n', '<localleader>os', ':noautocmd MoltenEnterOutput<CR>', { silent = true, desc = 'show/enter output' })
---
--- [[ DAP keymaps ]] --
--- Core Debugging
-vim.keymap.set('n', '<leader>db', ':DapToggleBreakpoint<CR>', { silent = true, desc = 'toggle breakpoint' })
-vim.keymap.set('n', '<leader>dc', ':DapContinue<CR>', { silent = true, desc = 'start/continue debugger' })
-vim.keymap.set('n', '<leader>dt', ':DapTerminate<CR>', { silent = true, desc = 'terminate debugger' })
-
--- Stepping
-vim.keymap.set('n', '<leader>dn', ':DapStepOver<CR>', { silent = true, desc = 'step over (next)' })
-vim.keymap.set('n', '<leader>di', ':DapStepInto<CR>', { silent = true, desc = 'step into' })
-vim.keymap.set('n', '<leader>do', ':DapStepOut<CR>', { silent = true, desc = 'step out' })
-
--- UI / REPL
-vim.keymap.set('n', '<leader>dvv', ':DapViewToggle<CR>', { silent = true, desc = 'toggle dap view' })
-vim.keymap.set('n', '<leader>dvw', ':DapViewShow watches<CR>', { silent = true, desc = 'show dap watches view' })
-vim.keymap.set('n', '<leader>dvb', ':DapViewShow breakpoints<CR>', { silent = true, desc = 'show dap breakpoints view' })
-vim.keymap.set('n', '<leader>dvs', ':DapViewShow scopes<CR>', { silent = true, desc = 'show dap scopes view' })
-vim.keymap.set('n', '<leader>dve', ':DapViewShow exceptions<CR>', { silent = true, desc = 'show dap exceptions view' })
-vim.keymap.set('n', '<leader>dvt', ':DapViewShow threads<CR>', { silent = true, desc = 'show dap threads view' })
-vim.keymap.set('n', '<leader>dvr', ':DapViewShow repl<CR>', { silent = true, desc = 'show dap repl view' })
-vim.keymap.set('n', '<leader>dr', ':DapViewJump repl<CR>', { silent = true, desc = 'focus on dap repl' })
-vim.keymap.set('n', '<leader>dw', ':DapViewWatch<CR>', { silent = true, desc = '(dap) adds expression under cursor to watch' })
-vim.keymap.set('v', '<leader>dw', ':DapViewWatch<CR>', { silent = true, desc = '(dap) adds expression under cursor to watch' })
-
--- NEOTEST
-vim.keymap.set("n", "<leader>ts", function()
-  require("neotest").summary.toggle()
-end, { desc = "Neotest: Toggle test summary" })
-
-
 -- [[ Basic Keymaps ]]
 --  See `:help vim.keymap.set()`
 
@@ -216,12 +179,6 @@ vim.keymap.set('n', '<Esc>', '<cmd>nohlsearch<CR>')
 
 -- Diagnostic keymaps
 vim.keymap.set('n', '<leader>q', vim.diagnostic.setloclist, { desc = 'Open diagnostic [Q]uickfix list' })
-
--- TIP: Disable arrow keys in normal mode
--- vim.keymap.set('n', '<left>', '<cmd>echo "Use h to move!!"<CR>')
--- vim.keymap.set('n', '<right>', '<cmd>echo "Use l to move!!"<CR>')
--- vim.keymap.set('n', '<up>', '<cmd>echo "Use k to move!!"<CR>')
--- vim.keymap.set('n', '<down>', '<cmd>echo "Use j to move!!"<CR>')
 
 -- Keybinds to make split navigation easier.
 --  Use CTRL+<hjkl> to switch between windows
@@ -384,25 +341,6 @@ require('lazy').setup({
   -- you do for a plugin at the top level, you can do for a dependency.
   --
   -- Use the `dependencies` key to specify the dependencies of a particular plugin
-  {
-    'benlubas/molten-nvim',
-    version = '^1.0.0', -- use version <2.0.0 to avoid breaking changes
-    build = ':UpdateRemotePlugins',
-    init = function()
-      vim.g.molten_image_provider = 'none'
-      vim.g.molten_open_cmd = 'open'
-      vim.g.molten_auto_init_behavior = 'init'
-      vim.g.molten_auto_image_popup = false
-      vim.g.molten_output_win_max_height = 15
-      vim.g.molten_output_win_hide_on_leave = true
-      vim.g.molten_virt_lines_off_by_1 = true
-      vim.g.molten_virt_text_max_lines = 10000
-      vim.g.molten_cover_empty_lines = false
-      vim.g.molten_copy_output = false
-      vim.g.molten_output_show_exec_time = true
-      vim.g.molten_auto_open_output = false
-    end,
-  },
   { -- Fuzzy Finder (files, lsp, etc)
     'nvim-telescope/telescope.nvim',
     event = 'VimEnter',
@@ -499,11 +437,6 @@ require('lazy').setup({
           prompt_title = 'Live Grep in Open Files',
         }
       end, { desc = '[S]earch [/] in Open Files' })
-
-      -- Shortcut for searching your Neovim configuration files
-      vim.keymap.set('n', '<leader>sn', function()
-        builtin.find_files { cwd = vim.fn.stdpath 'config' }
-      end, { desc = '[S]earch [N]eovim files' })
     end,
   },
 
@@ -679,10 +612,10 @@ require('lazy').setup({
         underline = { severity = vim.diagnostic.severity.ERROR },
         signs = vim.g.have_nerd_font and {
           text = {
-            [vim.diagnostic.severity.ERROR] = '󰅚 ',
-            [vim.diagnostic.severity.WARN] = '󰀪 ',
-            [vim.diagnostic.severity.INFO] = '󰋽 ',
-            [vim.diagnostic.severity.HINT] = '󰌶 ',
+            [vim.diagnostic.severity.ERROR] = '!!',
+            [vim.diagnostic.severity.WARN] = '!',
+            [vim.diagnostic.severity.INFO] = '+',
+            [vim.diagnostic.severity.HINT] = '?',
           },
         } or {},
         virtual_text = {
@@ -716,8 +649,6 @@ require('lazy').setup({
       --  - settings (table): Override the default settings passed when initializing the server.
       --        For example, to see the options for `lua_ls`, you could go to: https://luals.github.io/wiki/settings/
       local servers = {
-        -- clangd = {},
-        -- gopls = {},
         pyright = { -- NOTE: needs npm installed
           settings = {
             python = {
@@ -729,16 +660,7 @@ require('lazy').setup({
             },
           },
         },
-        -- rust_analyzer = {},
-        -- ... etc. See `:help lspconfig-all` for a list of all the pre-configured LSPs
-        --
-        -- Some languages (like typescript) have entire language plugins that can be useful:
-        --    https://github.com/pmizio/typescript-tools.nvim
-        --
-        -- But for many setups, the LSP (`ts_ls`) will work just fine
-        -- ts_ls = {},
-        --
-
+        marksman = { setting = { markdown = {} } },
         lua_ls = {
           -- cmd = { ... },
           -- filetypes = { ... },
@@ -748,7 +670,6 @@ require('lazy').setup({
               completion = {
                 callSnippet = 'Replace',
               },
-              -- You can toggle below to ignore Lua_LS's noisy `missing-fields` warnings
               -- diagnostics = { disable = { 'missing-fields' } },
             },
           },
@@ -789,6 +710,7 @@ require('lazy').setup({
         'isort', -- Sort python imports
         'black', -- format python code
         'debugpy', -- Python debugger
+        'pylint',
       })
       require('mason-tool-installer').setup { ensure_installed = ensure_installed }
 
@@ -803,158 +725,6 @@ require('lazy').setup({
             -- certain features of an LSP (for example, turning off formatting for ts_ls)
             server.capabilities = vim.tbl_deep_extend('force', {}, capabilities, server.capabilities or {})
             require('lspconfig')[server_name].setup(server)
-          end,
-        },
-      }
-    end,
-  },
-  {
-    'igorlfs/nvim-dap-view',
-    event = 'VeryLazy',
-    dependencies = { 'msfusseneger/nvim-dap' },
-    ---@module 'dap-view'
-    ---@typen dapview.Config
-    config = function()
-      local dap = require 'dap'
-      dap.configurations.python = {
-        {
-          -- The first three options are required by nvim-dap
-          type = 'python', -- the type here established the link to the adapter definition: `dap.adapters.python`
-          request = 'launch',
-          name = 'Launch file',
-
-          -- Options below are for debugpy, see https://github.com/microsoft/debugpy/wiki/Debug-configuration-settings for supported options
-
-          program = '${file}',
-          pythonPath = function()
-            return vim.fn.systemlist('which python')[1]
-          end,
-        },
-      }
-      dap.adapters.python = {
-        type = 'executable',
-        command = vim.g.python3_host_prog,
-        args = { '-m', 'debugpy.adapter' },
-      }
-      dap.defaults.fallback.switchbuf = "usevisible,usetab,newtab"
-    end,
-  },
-  {
-    'mfussenegger/nvim-dap',
-    event = 'VeryLazy',
-    lazy = true,
-  },
-  {
-    'nvim-neotest/neotest',
-    dependencies = {
-      'nvim-neotest/neotest-python',
-      'nvim-neotest/nvim-nio',
-      'nvim-lua/plenary.nvim',
-      'antoinemadec/FixCursorHold.nvim',
-      'nvim-treesitter/nvim-treesitter',
-    },
-    config = function()
-      require('neotest').setup {
-        -- 1) Icons that work without Nerd Font / codicons
-        icons = {
-          expanded = '-',
-          collapsed = '+',
-          child_prefix = '|',
-          child_indent = '> ',
-          final_child_prefix = '|',
-          non_collapsible = ' ',
- 
-          passed = 'OK', -- or "✓" if you like
-          running = '..',
-          failed = 'XX',
-          skipped = 'SK',
-          unknown = '??',
-          notify = 'N',
-          test = 'T',
-          watching = 'W',
-        },
- 
-        -- 2) Solarized-friendly highlight links (no hardcoded colors)
-        -- These groups exist in basically all colorschemes, including Solarized variants.
-        highlights = {
-          adapter_name = 'Title',
-          border = 'FloatBorder',
- 
-          -- status colors
-          passed = 'DiagnosticOk', -- green-ish in most Solarized setups
-          running = 'DiagnosticInfo', -- blue/cyan-ish
-          failed = 'DiagnosticError', -- red
-          skipped = 'DiagnosticWarn', -- yellow/orange
- 
-          -- tree / text
-          dir = 'Directory',
-          file = 'Normal',
-          test = 'Normal',
-          namespace = 'Comment',
- 
-          -- summary counts / positions
-          focused = 'Visual',
-        },
- 
-        summary = {
-          enabled = true,
-          animated = false, -- less “blinky” on minimalist themes
-          follow = false,
-          expand_errors = true,
- 
-          -- 3) Sensible key mappings inside the summary buffer
-          mappings = {
-            expand = { '<CR>', 'l' },
-            collapse = { 'h' }, -- (some versions use expand only; if collapse isn't supported, harmless)
-            run = 'r',
-            debug = 'd',
-            output = 'o',
-            short = 'O',
-            stop = 'S',
-            attach = 'a',
-            jumpto = 'i',
- 
-            mark = 'm',
-            run_marked = 'R',
-            debug_marked = 'D',
-            clear_marked = 'M',
- 
-            next_failed = ']f',
-            prev_failed = '[f',
- 
-            watch = 'w',
-          },
-        },
- 
-        output = {
-          enabled = true,
-          open_on_run = 'fail', -- open output automatically on failures
-        },
- 
-        output_panel = {
-          enabled = true,
-          open = 'botright split | resize 12',
-        },
-        adapters = {
-          require 'neotest-python' {
-            runner = 'pytest',
-            pytest_discover_instances = true,
-          },
-        },
-        discovery = {
-          enabled = true,
-          filter_dir = function(name)
-            return not vim.tbl_contains({
-              'node_modules',
-              '.git',
-              '__pycache__',
-              '.pytest_cache',
-              'venv',
-              '.venv',
-              'build',
-              'dist',
-              '.tox',
-            }, name)
           end,
         },
       }
@@ -995,6 +765,7 @@ require('lazy').setup({
         -- Conform can also run multiple formatters sequentially
         python = { 'isort', 'black' },
         typst = { 'typstyle' },
+        json = { 'jq' },
         --
         -- You can use 'stop_after_first' to run the first available formatter from the list
         -- javascript = { "prettierd", "prettier", stop_after_first = true },
@@ -1094,18 +865,14 @@ require('lazy').setup({
       -- the rust implementation via `'prefer_rust_with_warning'`
       --
       -- See :h blink-cmp-config-fuzzy for more information
-      fuzzy = { implementation = 'lua' },
+      fuzzy = { implementation = 'prefer_rust' },
 
       -- Shows a signature help window while you type arguments for a function
       signature = { enabled = true },
     },
   },
 
-  { -- You can easily change to a different colorscheme.
-    -- Change the name of the colorscheme plugin below, and then
-    -- change the command in the config to whatever the name of that colorscheme is.
-    --
-    -- If you want to see what colorschemes are already installed, you can use `:Telescope colorscheme`.
+  {
     'maxmx03/solarized.nvim',
     priority = 1000, -- Make sure to load this before all the other start plugins.
     config = function(_, opts)
@@ -1161,7 +928,7 @@ require('lazy').setup({
     lazy = false,
     build = ':TSUpdate',
     opts = {
-      ensure_installed = {'python', 'bash', 'c', 'diff', 'html', 'lua', 'luadoc', 'markdown', 'markdown_inline', 'query', 'vim', 'vimdoc' },
+      ensure_installed = { 'python', 'bash', 'c', 'diff', 'html', 'lua', 'luadoc', 'markdown', 'markdown_inline', 'query', 'vim', 'vimdoc' },
       -- Autoinstall languages that are not installed
       auto_install = true,
       highlight = {
@@ -1181,27 +948,14 @@ require('lazy').setup({
     --    - Treesitter + textobjects: https://github.com/nvim-treesitter/nvim-treesitter-textobjects
   },
 
-  -- The following comments only work if you have downloaded the kickstart repo, not just copy pasted the
-  -- init.lua. If you want these files, they are in the repository, so you can just download them and
-  -- place them in the correct locations.
+  require 'kickstart.plugins.debug',
+  require 'kickstart.plugins.indent_line',
+  require 'kickstart.plugins.lint',
+  require 'kickstart.plugins.neo-tree',
+  require 'kickstart.plugins.gitsigns', -- adds gitsigns recommend keymaps
 
-  -- NOTE: Next step on your Neovim journey: Add/Configure additional plugins for Kickstart
-  --
-  --  Here are some example plugins that I've included in the Kickstart repository.
-  --  Uncomment any of the lines below to enable them (you will need to restart nvim).
-  --
-  -- require 'kickstart.plugins.debug',
-  -- require 'kickstart.plugins.indent_line',
-  -- require 'kickstart.plugins.lint',
-  -- require 'kickstart.plugins.autopairs',
-  -- require 'kickstart.plugins.neo-tree',
-  -- require 'kickstart.plugins.gitsigns', -- adds gitsigns recommend keymaps
-
-  -- NOTE: The import below can automatically add your own plugins, configuration, etc from `lua/custom/plugins/*.lua`
-  --    This is the easiest way to modularize your config.
-  --
-  --  Uncomment the following line and add your plugins to `lua/custom/plugins/*.lua` to get going.
-  -- { import = 'custom.plugins' },
+  -- CUSTOM PLUGINS
+  { import = 'custom.plugins' },
   --
   -- For additional information with loading, sourcing and examples see `:help lazy.nvim-🔌-plugin-spec`
   -- Or use telescope!
@@ -1229,6 +983,7 @@ require('lazy').setup({
   },
 })
 
+-- IPYNB
 -- Track buffers tied to .ipynb files
 local ipynb_associations = {}
 
@@ -1319,4 +1074,3 @@ require('boxdraw').setup {
   -- box_mode = { commit = "<CR>", cancel = "<Esc>" },
   -- line_mode = { exit = "<Esc>", arrow_exit = "A" },
 }
-

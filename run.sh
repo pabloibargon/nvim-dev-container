@@ -154,6 +154,7 @@ docker run -it --rm \
     -v ".:$VOLUME_TARGET_PATH" \
     -v "$HOME/.gitconfig:/home/user/.gitconfig" \
     -v "$HOME/.ssh:/home/user/.ssh:ro" \
+    -v "$HOME/notes:/home/user/notes" \
     "${docker_args[@]}" \
     "nvim-dev-container-$TARGET" \
     --login \
