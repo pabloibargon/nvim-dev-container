@@ -649,20 +649,8 @@ require('lazy').setup({
       --  - settings (table): Override the default settings passed when initializing the server.
       --        For example, to see the options for `lua_ls`, you could go to: https://luals.github.io/wiki/settings/
       local servers = {
-        pyright = { -- NOTE: needs npm installed
-          settings = {
-            python = {
-              analysis = {
-                autoSearchPaths = true,
-                useLibraryCodeForTypes = true,
-                diagnosticMode = 'workspace',
-              },
-            },
-          },
-        },
-        marksman = { setting = { markdown = {} } },
         lua_ls = {
-          -- cmd = { ... },
+         -- cmd = { ... },
           -- filetypes = { ... },
           -- capabilities = {},
           settings = {
@@ -710,7 +698,8 @@ require('lazy').setup({
         'isort', -- Sort python imports
         'black', -- format python code
         'debugpy', -- Python debugger
-        'pylint',
+        'ruff',
+	'ty'
       })
       require('mason-tool-installer').setup { ensure_installed = ensure_installed }
 

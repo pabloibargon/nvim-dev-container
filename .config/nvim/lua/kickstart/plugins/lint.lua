@@ -6,7 +6,7 @@ return {
     config = function()
       local lint = require 'lint'
       lint.linters_by_ft = {
-        python = { 'pylint' },
+        python = { 'ruff' },
       }
       -- Create autocommand which carries out the actual linting
       -- on the specified events.
