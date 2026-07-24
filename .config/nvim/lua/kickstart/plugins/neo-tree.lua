@@ -46,12 +46,29 @@ return {
       },
     },
 
-    filesystem = {
-      window = {
-        mappings = {
-          ['\\'] = 'close_window',
+    window = {
+      mappings = {
+        ['\\'] = 'close_window',
+        ['E'] = {
+          function(_)
+            vim.api.nvim_exec2('Neotree focus filesystem left', { output = true })
+          end,
+          desc = 'Toggle File Explorer', -- Sets help in popup to "Toggle File Explorer"
+        },
+        ['G'] = {
+          function(_)
+            vim.api.nvim_exec2('Neotree focus git_status left', { output = true })
+          end,
+          desc = 'Toggle Git Status', -- Sets help in popup to "Toggle Git Status"
+        },
+        ['B'] = {
+          function(_)
+            vim.api.nvim_exec2('Neotree focus buffers left', { output = true })
+          end,
+          desc = 'Toggle Open Buffers', -- Sets help in popup to "Toggle Open Buffers"
         },
       },
     },
+
   },
 }
