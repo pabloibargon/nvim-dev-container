@@ -26,6 +26,10 @@ return {
         watching = '◉',
         notify = '!',
         test = '•',
+	dir = '+',
+        file = '+',
+        namespace = '+',
+
 
         running_animated = {
           '/',
@@ -103,6 +107,7 @@ return {
       adapters = {
         require 'neotest-python' {
           runner = 'pytest',
+          args = { '--override-ini=addopts=' },
           pytest_discover_instances = true,
         },
       },

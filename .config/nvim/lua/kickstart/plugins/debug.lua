@@ -5,10 +5,6 @@ return {
   event = 'VeryLazy',
   dependencies = {
     'igorlfs/nvim-dap-view',
-
-    -- Installs the debug adapters for you
-    'mason-org/mason.nvim',
-    'jay-babu/mason-nvim-dap.nvim',
   },
   keys = {
     -- Core Debugging
@@ -136,21 +132,6 @@ return {
       args = { '-m', 'debugpy.adapter' },
     }
     dap.defaults.fallback.switchbuf = 'usevisible,usetab,newtab'
-    require('mason-nvim-dap').setup {
-      -- Makes a best effort to setup the various debuggers with
-      -- reasonable debug configurations
-      automatic_installation = true,
-
-      -- You can provide additional configuration to the handlers,
-      -- see mason-nvim-dap README for more information
-      handlers = {},
-
-      -- You'll need to check that you have the required things installed
-      -- online, please don't ask me how to install them :)
-      ensure_installed = {
-        'debugpy',
-      },
-    }
 
     -- Change breakpoint icons
     local breakpoint_icons = { Breakpoint = '●', BreakpointCondition = '⊜', BreakpointRejected = '⊘', LogPoint = '◆', Stopped = '⭔' }
@@ -161,3 +142,4 @@ return {
     end
   end,
 }
+

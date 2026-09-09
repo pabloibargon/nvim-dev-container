@@ -35,9 +35,13 @@ compinit
 # Enable colors
 autoload -U colors && colors
 
-# Prompt format: User@Host CurrentDir $
-# %n = user, %m = host, %~ = current directory
-PROMPT="%{$fg[green]%}%n@%m %{$fg[blue]%}%~ %{$reset_color%}%# "
+git_branch() {
+  local branch=$(git branch --show-current 2>/dev/null)
+  [[ -n $branch ]] && echo "%{$fg[grey]%}($branch)%{$reset_color%}"
+}
+
+setopt PROMPT_SUBST
+PROMPT='$(git_branch) %{$fg[green]%}%n@%m %{$fg[blue]%}%~%{$reset_color%}%# '
 
 # =============================================================================
 # ALIASES & FUNCTIONS
@@ -49,6 +53,10 @@ alias copy='xsel -ib'
 rmd2html() {
     command="rmarkdown::render(\"$1\", output_format='html_document')"
     Rscript -e "$command"
+}
+
+pqp() {
+  python3 -c 'import sys, polars as pl; print(pl.read_parquet(sys.argv[1]))' "$1"
 }
 
 # =============================================================================
