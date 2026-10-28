@@ -3,10 +3,19 @@
 # =============================================================================
 export PATH="$PATH:/opt/nvim-linux-x86_64/bin"
 export PATH="$HOME/.cargo/bin:$PATH"
-export PATH="$HOME/.config/commands:$PATH"
 export PATH="$HOME/.local/bin:$PATH"
 
 export EDITOR=nvim
+
+source "$HOME/.config/commands/"*
+
+# Add hidden app bin directories (up to 2 levels deep) to PATH
+typeset -U path
+path=(
+  "$HOME"/.*/bin(N/)
+  "$HOME"/.*/*/bin(N/)
+  "${path[@]}"
+)
 
 # =============================================================================
 # HISTORY CONFIGURATION (Fixes "no history")
