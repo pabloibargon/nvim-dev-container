@@ -166,6 +166,19 @@ RUN cp -r /tmp/typst/* .config/nvim
 RUN rm -rf /tmp/typst
 USER user
 
+#### STAGE: golang ###
+
+FROM base AS golang
+
+USER root
+RUN pacman -Sy --noconfirm --needed go gopls
+WORKDIR /home/user
+COPY ./golang /tmp/golang
+RUN cp -r /tmp/golang/* .config/nvim
+RUN rm -rf /tmp/golang
+USER user
+
+RUN echo 'export PATH="$HOME/go/bin:$PATH"' >> .zshrc
 
 ### STAGE: default ###
 
